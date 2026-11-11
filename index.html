@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matriz RESTAURA — visualizador</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Literata:opsz,wght@7..72,500;7..72,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="js/app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <button class="icon-btn tree-toggle" id="treeToggle" aria-label="Mostrar árbol" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+  </button>
+  <button class="brand" id="btnHome" title="Ir al inicio">
+    <span class="brand-name">Matriz RESTAURA</span>
+    <span class="brand-sub" id="docTitle">Monitoreo de la restauración · SIAT-AC / SINCHI</span>
+  </button>
+  <div class="tools">
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      <input id="q" type="search" placeholder="Buscar variable, indicador, código…" autocomplete="off">
+    </label>
+    <label class="view-sel">
+      <span>Ordenar por</span>
+      <select id="viewSel"></select>
+    </label>
+    <button id="btnAllObs" class="btn">Observaciones <span id="obsTotal" class="pill">0</span></button>
+    <button id="btnSync" class="sync" data-state="local"><span class="dot" aria-hidden="true"></span><span id="syncTxt">Solo en este navegador</span></button>
+    <button id="btnSettings" class="icon-btn" aria-label="Configuración">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </div>
+</header>
+
+<nav class="ribbon" id="ribbon" aria-label="Fases del monitoreo"></nav>
+<div class="filters" id="filters"></div>
+
+<main class="layout" id="layout">
+  <aside class="tree-pane" id="treePane" aria-label="Árbol de la matriz">
+    <div id="tree" role="tree"></div>
+  </aside>
+  <div class="main-col" id="mainCol">
+    <section class="detail" id="detail" aria-live="polite">
+      <div class="loading">Cargando la matriz…</div>
+    </section>
+    <aside class="obs-pane" id="obsPane" aria-label="Observaciones"></aside>
+  </div>
+</main>
+<div class="scrim" id="scrim" hidden></div>
+
+<dialog id="dlgSettings" class="dlg">
+  <form method="dialog" class="dlg-body" id="frmSettings">
+    <h2>Configuración</h2>
+    <label class="fld"><span>Tu nombre (aparece en tus observaciones)</span>
+      <input name="autor" autocomplete="name" placeholder="Ej.: Víctor Martínez"></label>
+
+    <h3>Guardar observaciones en GitHub</h3>
+    <p class="hint">Las observaciones se leen del repositorio sin credenciales. Para <em>subir</em> las tuyas, pega un token personal de GitHub con permiso de escritura solo sobre este repositorio. El token queda guardado únicamente en este navegador.</p>
+    <div class="grid2">
+      <label class="fld"><span>Usuario u organización</span><input name="owner" placeholder="usuario"></label>
+      <label class="fld"><span>Repositorio</span><input name="repo" placeholder="matriz-restaura"></label>
+      <label class="fld"><span>Rama</span><input name="branch" placeholder="main"></label>
+      <label class="fld"><span>Archivo de observaciones</span><input name="obsPath" placeholder="observaciones/observaciones.json"></label>
+    </div>
+    <label class="fld"><span>Token de GitHub (fine-grained, Contents: Read and write)</span>
+      <input name="token" type="password" autocomplete="off" placeholder="github_pat_…"></label>
+    <p class="hint" id="setStatus"></p>
+
+    <h3>Matriz</h3>
+    <p class="hint" id="excelSource"></p>
+    <div class="row-btns">
+      <button type="button" class="btn" id="btnLoadExcel">Abrir otra versión del Excel</button>
+      <button type="button" class="btn" id="btnReloadExcel">Volver al Excel del repositorio</button>
+    </div>
+
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="btnForgetToken">Olvidar token</button>
+      <button type="button" class="btn" id="btnTestGh">Probar conexión</button>
+      <button value="cancel" class="btn ghost">Cerrar</button>
+      <button type="button" class="btn primary" id="btnSaveSettings">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgAll" class="dlg wide">
+  <div class="dlg-body">
+    <div class="dlg-head">
+      <h2>Todas las observaciones</h2>
+      <button class="icon-btn" id="btnCloseAll" aria-label="Cerrar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="all-filters">
+      <input type="search" id="allQ" placeholder="Filtrar por texto, autor, variable…">
+      <select id="allEstado"><option value="">Todas</option><option value="abierta">Abiertas</option><option value="resuelta">Resueltas</option></select>
+      <select id="allTipo"><option value="">Todos los tipos</option></select>
+    </div>
+    <div class="all-table-wrap"><table class="all-table" id="allTable"></table></div>
+    <div class="dlg-actions spread">
+      <div class="row-btns">
+        <button class="btn" id="btnImport">Importar JSON</button>
+        <a class="btn ghost" id="lnkGhFile" target="_blank" rel="noopener" hidden>Ver archivo en GitHub</a>
+      </div>
+      <div class="row-btns">
+        <span class="hint">Descargar:</span>
+        <button class="btn primary" id="btnExpXlsx">Excel</button>
+        <button class="btn" id="btnExpCsv">CSV</button>
+        <button class="btn" id="btnExpJson">JSON</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileExcel" accept=".xlsx,.xlsm,.xls" hidden>
+<input type="file" id="fileJson" accept=".json,application/json" hidden>
+</body>
+</html>
